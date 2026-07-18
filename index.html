@@ -1,0 +1,879 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>BMS Live Current & Scope Simulator - นายจักรกฤษณ์ จ่าทองคำ</title>
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            slate: {
+              950: '#020617',
+            }
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    /* แถบเลื่อนหน้าเว็บสำหรับธีม Dark */
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: #020617;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #1e293b;
+      border-radius: 3px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: #334155;
+    }
+    
+    /* เอฟเฟกต์ Glow & Neon Aura */
+    .glow-cyan { box-shadow: 0 0 15px rgba(6, 182, 212, 0.3); }
+    .glow-emerald { box-shadow: 0 0 15px rgba(16, 185, 129, 0.3); }
+    .glow-rose { box-shadow: 0 0 15px rgba(244, 63, 94, 0.4); }
+
+    /* แอนิเมชันลูกศรและกระแสประจุไฟฟ้าวิ่ง */
+    @keyframes flow-forward { to { stroke-dashoffset: -20; } }
+    @keyframes flow-reverse { to { stroke-dashoffset: 20; } }
+    
+    .animate-flow-cyan { stroke-dasharray: 6, 4; animation: flow-forward 0.5s linear infinite; stroke: #22d3ee; stroke-width: 3.5; }
+    .animate-flow-amber { stroke-dasharray: 6, 4; animation: flow-forward 0.5s linear infinite; stroke: #fbbf24; stroke-width: 3.5; }
+    .animate-flow-purple { stroke-dasharray: 6, 4; animation: flow-forward 0.5s linear infinite; stroke: #c084fc; stroke-width: 3.5; }
+    .animate-flow-red { stroke-dasharray: 6, 4; animation: flow-forward 0.4s linear infinite; stroke: #f43f5e; stroke-width: 3.5; }
+    .animate-flow-red-rev { stroke-dasharray: 6, 4; animation: flow-reverse 0.4s linear infinite; stroke: #f43f5e; stroke-width: 3.5; }
+    .animate-flow-load { stroke-dasharray: 8, 4; animation: flow-forward 0.7s linear infinite; stroke: #10b981; stroke-width: 4; }
+  </style>
+</head>
+<body class="min-h-screen bg-slate-950 text-slate-100 flex flex-col font-sans selection:bg-emerald-500/30">
+
+  <!-- หน้าปกเปิดนำเสนอผลงานเชิงวิศวกรรม (Presentation Cover) -->
+  <div id="welcome-modal" class="fixed inset-0 bg-slate-950/95 backdrop-blur-md z-[100] flex items-center justify-center p-4 transition-all duration-500">
+    <div class="bg-slate-900 border border-slate-800/80 p-8 rounded-3xl max-w-2xl w-full text-center relative overflow-hidden shadow-2xl shadow-emerald-500/10">
+      <div class="absolute -top-24 -left-24 w-48 h-48 bg-emerald-500/10 rounded-full blur-3xl"></div>
+      <div class="absolute -bottom-24 -right-24 w-48 h-48 bg-cyan-500/10 rounded-full blur-3xl"></div>
+      
+      <div class="mx-auto h-16 w-16 rounded-2xl bg-gradient-to-tr from-emerald-500 to-cyan-500 flex items-center justify-center mb-6 shadow-lg shadow-emerald-500/20">
+        <svg class="h-10 w-10 text-slate-950" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+          <rect x="5" y="5" width="14" height="14" rx="2" />
+          <path d="M9 1v4M15 1v4M9 19v4M15 19v4M23 9h-4M23 15h-4M5 9H1M5 15H1" />
+        </svg>
+      </div>
+      
+      <span class="px-3 py-1 bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-xs font-black rounded-full uppercase tracking-widest">
+        SENIOR PROJECT PRESENTATION
+      </span>
+      
+      <h1 class="text-3xl font-black tracking-tight mt-4 text-white leading-tight">
+        ระบบจำลองสถาปัตยกรรมกระแสไหลเวียน BMS<br>และวิเคราะห์กราฟลู่เข้าแรงดัน 4 เซลล์สมบูรณ์แบบ
+      </h1>
+      <p class="text-slate-400 text-sm mt-3 max-w-md mx-auto leading-relaxed">
+        แพลตฟอร์มคำนวณเวกเตอร์ Ampere ทิศทางกระแสสลับเปลี่ยนตามสภาวะฮาร์ดแวร์จริง รองรับระบบ Safety Matrix และตัวสแกนพิกัดโหลด
+      </p>
+
+      <div class="my-8 p-6 bg-slate-950/80 rounded-2xl border border-slate-800/80 relative">
+        <p class="text-xs text-slate-500 uppercase tracking-widest font-black mb-2">ผู้จัดทำโครงงานนำเสนอ</p>
+        <h2 class="text-2xl font-black text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 to-cyan-400">
+          นายจักรกฤษณ์ จ่าทองคำ
+        </h2>
+        <p class="text-sm text-slate-300 mt-2 font-bold">
+          สาขาวิชาวิศวกรรมอิเล็กทรอนิกส์ และระบบควบคุมอัตโนมัติ
+        </p>
+      </div>
+
+      <button onclick="dismissWelcome()" class="w-full py-4 px-6 rounded-xl font-black text-base bg-gradient-to-r from-emerald-500 to-cyan-500 hover:from-emerald-400 hover:to-cyan-400 text-slate-950 transition-all duration-300 transform hover:-translate-y-0.5 shadow-xl shadow-emerald-500/15">
+        เริ่มรันระบบสากลและเปิดจุดวัดสัญญาณ
+      </button>
+    </div>
+  </div>
+
+  <!-- แดชบอร์ดเฮดเดอร์หลัก -->
+  <header class="border-b border-slate-800 bg-slate-900/85 backdrop-blur px-6 py-4 flex flex-col xl:flex-row justify-between items-center gap-4 sticky top-0 z-50">
+    <div class="flex items-center gap-3">
+      <div class="h-10 w-10 rounded-xl bg-gradient-to-tr from-emerald-500 to-cyan-500 flex items-center justify-center shadow-lg">
+        <svg class="h-6 w-6 text-slate-950" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path d="M9 3v2m6-2v2M9 19v2m6-2v2M5 9H3m2 6H3m18-6h-2m2 6h-2M7 5h10a2 2 0 012 2v10a2 2 0 01-2 2H7a2 2 0 01-2-2V7a2 2 0 012-2z"/></svg>
+      </div>
+      <div>
+        <h1 class="text-lg font-black tracking-tight text-white flex items-center gap-2">
+          BMS Smart Safety & Topology Vector Simulator
+          <span id="sys-badge" class="text-[10px] px-2 py-0.5 rounded bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 font-bold tracking-wider">SYSTEM READY</span>
+        </h1>
+        <p class="text-xs text-slate-400 font-medium">แผงจำลองทิศทางเวกเตอร์อิเล็กตรอนและตรวจสอบการชาร์จ/การตัดจ่ายกระแสไฟฟ้าสะสม</p>
+      </div>
+    </div>
+
+    <div class="flex items-center gap-4 bg-slate-950/60 border border-slate-800/80 px-4 py-2 rounded-xl">
+      <div class="text-right">
+        <p class="text-[9px] text-slate-500 uppercase font-black tracking-wider">วิจัยพัฒนาโดย</p>
+        <h4 class="text-xs font-black text-cyan-400">นายจักรกฤษณ์ จ่าทองคำ</h4>
+        <p class="text-[9px] text-slate-400">วิศวกรรมอิเล็กทรอนิกส์ และระบบควบคุมอัตโนมัติ</p>
+      </div>
+    </div>
+  </header>
+
+  <!-- คอมโพเนนต์หลักของแพลตฟอร์ม -->
+  <main class="flex-1 p-6 grid grid-cols-1 xl:grid-cols-12 gap-6 max-w-[1700px] w-full mx-auto">
+    
+    <!-- ส่วนควบคุมด้านซ้าย: พารามิเตอร์และการเปลี่ยนสเตตัสบอร์ด (4 COLS) -->
+    <section class="xl:col-span-4 flex flex-col gap-6">
+      
+      <!-- การ์ดบ่งชี้วิศวกรโครงงาน -->
+      <div class="bg-gradient-to-r from-slate-900 to-slate-900/40 border border-slate-800 rounded-2xl p-4 shadow-xl">
+        <div class="flex gap-3.5 items-center">
+          <div class="h-11 w-11 rounded-xl bg-gradient-to-tr from-emerald-500 to-cyan-500 flex items-center justify-center text-slate-950 shrink-0 font-black">4S</div>
+          <div>
+            <span class="text-[9px] text-slate-500 font-black tracking-widest block font-mono">LAB ENVIRONMENT PRO</span>
+            <h3 class="text-base font-black text-white">นายจักรกฤษณ์ จ่าทองคำ</h3>
+            <p class="text-xs text-slate-400 font-semibold">ELECTRONIC & AUTOMATION SYSTEMS ENGINEERING</p>
+          </div>
+        </div>
+      </div>
+      
+      <!-- บล็อกปรับเลือกฮาร์ดแวร์ -->
+      <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-xl">
+        <h2 class="text-sm font-semibold text-slate-400 uppercase tracking-wider mb-4 flex items-center gap-2">
+          🔌 ข้อมูลสถาปัตยกรรมบาลานซ์และชุดเคมีแพ็ค
+        </h2>
+
+        <!-- Topology Tabs -->
+        <div class="mb-5">
+          <label class="text-xs text-slate-400 block mb-2 font-semibold">เลือกสถาปัตยกรรมของวงจรบาลานซ์ (BMS Topologies):</label>
+          <div class="grid grid-cols-2 gap-2">
+            <button id="btn-tab-passive" onclick="setTopology('passive')" class="p-2.5 rounded-xl border text-left flex flex-col justify-between transition-all bg-emerald-500/15 border-emerald-500 text-emerald-300">
+              <span class="font-bold text-xs">1. Passive Bypass</span>
+              <span class="text-[9px] opacity-80">ระบายพลังงานทิ้งเป็นความร้อน</span>
+            </button>
+            <button id="btn-tab-capacitor" onclick="setTopology('capacitor')" class="p-2.5 rounded-xl border text-left flex flex-col justify-between transition-all bg-slate-950 border-slate-800 text-slate-400 hover:border-slate-700">
+              <span class="font-bold text-xs">2. Active Switched-Cap</span>
+              <span class="text-[9px] opacity-80">ใช้ตัวเก็บประจุโยกกระสวยพลังงาน</span>
+            </button>
+            <button id="btn-tab-inductive" onclick="setTopology('inductive')" class="p-2.5 rounded-xl border text-left flex flex-col justify-between transition-all bg-slate-950 border-slate-800 text-slate-400 hover:border-slate-700">
+              <span class="font-bold text-xs">3. Active Buck-Boost</span>
+              <span class="text-[9px] opacity-80">เหนี่ยวนำประจุผ่านขดลวดคอยล์</span>
+            </button>
+            <button id="btn-tab-transformer" onclick="setTopology('transformer')" class="p-2.5 rounded-xl border text-left flex flex-col justify-between transition-all bg-slate-950 border-slate-800 text-slate-400 hover:border-slate-700">
+              <span class="font-bold text-xs">4. Active Flyback Core</span>
+              <span class="text-[9px] opacity-80">ใช้หม้อแปลงรวมแกนดึงกระแส</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Preset Cases -->
+        <div class="mb-5">
+          <label class="text-xs text-slate-400 block mb-2 font-semibold">ตั้งค่าเคสตัวแปรแรงดันจำลองแบบด่วน:</label>
+          <div class="grid grid-cols-2 gap-2 text-xs font-bold">
+            <button onclick="applyPreset('imbalanced')" class="py-2 px-3 bg-slate-950 border border-slate-850 hover:border-slate-700 rounded-xl transition">🚨 แรงดันคลาดเคลื่อนสูง</button>
+            <button onclick="applyPreset('overcharge')" class="py-2 px-3 bg-slate-950 border border-slate-850 hover:border-slate-700 rounded-xl transition">🔥 เซลล์ชาร์จเกินขีดจำกัด</button>
+            <button onclick="applyPreset('weak_cell')" class="py-2 px-3 bg-slate-950 border border-slate-850 hover:border-slate-700 rounded-xl transition">📉 มีค่านิรันดร์เซลล์เสื่อม</button>
+            <button onclick="applyPreset('balanced')" class="py-2 px-3 bg-slate-950 border border-slate-850 hover:border-slate-700 rounded-xl transition">🌱 แรงดันสมดุล 100%</button>
+          </div>
+        </div>
+
+        <!-- แอคชันแผงควบคุมหลัก & โหลดใช้งาน -->
+        <div class="grid grid-cols-2 gap-2 mb-5">
+          <button id="btn-play-pause" onclick="toggleSimulation()" class="py-3 px-4 rounded-xl font-bold text-xs bg-emerald-500 hover:bg-emerald-400 text-slate-950 flex items-center justify-center gap-1.5 transition">
+            <span id="txt-play">เริ่มระบบวิเคราะห์</span>
+          </button>
+          <button id="btn-load" onclick="toggleLoad()" class="py-3 px-4 rounded-xl font-bold text-xs bg-slate-800 hover:bg-slate-700 text-white flex items-center justify-center gap-1.5 transition">
+            🛑 ปิดโหลดใช้งาน
+          </button>
+        </div>
+
+        <!-- สไลเดอร์ความถี่และขนาดอุปกรณ์แปลง -->
+        <div class="space-y-4 pt-4 border-t border-slate-800">
+          <div>
+            <div class="flex justify-between text-xs mb-1">
+              <span class="text-slate-400">อัตราการเร่งเวลาจำลอง (Sim Speed):</span>
+              <span id="lbl-sim-speed" class="text-cyan-400 font-bold font-mono">20x</span>
+            </div>
+            <input type="range" id="rng-sim-speed" min="1" max="100" value="20" oninput="changeSimSpeed(this.value)" class="w-full accent-cyan-400 bg-slate-950 h-1 rounded">
+          </div>
+
+          <div>
+            <div class="flex justify-between text-xs mb-1">
+              <span class="text-slate-400">ขีดจำกัดขอบเขตคลาดเคลื่อนเป้าหมาย:</span>
+              <span id="lbl-threshold" class="text-emerald-400 font-bold font-mono">≤ 15 mV</span>
+            </div>
+            <input type="range" id="rng-threshold" min="5" max="50" value="15" oninput="changeThreshold(this.value)" class="w-full accent-emerald-400 bg-slate-950 h-1 rounded">
+          </div>
+
+          <!-- แผงจูนอุปกรณ์ภายใน -->
+          <div id="dynamic-tuning-panel" class="p-3 bg-slate-950 rounded-xl border border-slate-800/80 text-xs">
+            <div id="tuning-passive" class="space-y-2">
+              <div class="flex justify-between">
+                <span class="text-slate-400">ขนาดความต้านทานระบายทิ้ง (R_bleed):</span>
+                <span id="lbl-rbleed" class="text-rose-400 font-bold font-mono">4.7 Ω</span>
+              </div>
+              <input type="range" id="rng-rbleed" min="1.0" max="22.0" step="0.1" value="4.7" oninput="changeRbleed(this.value)" class="w-full accent-rose-500 bg-slate-900 h-1 rounded">
+            </div>
+            <div id="tuning-active" class="space-y-3 hidden">
+              <div class="grid grid-cols-2 gap-3">
+                <div>
+                  <span class="text-[10px] text-slate-400 block mb-1">ความจุ (C_fly): <b id="lbl-cfly" class="text-cyan-400 font-mono">220uF</b></span>
+                  <input type="range" id="rng-cfly" min="47" max="1000" value="220" oninput="changeCfly(this.value)" class="w-full accent-cyan-400 bg-slate-900 h-1 rounded">
+                </div>
+                <div>
+                  <span class="text-[10px] text-slate-400 block mb-1">ความถี่ (f_sw): <b id="lbl-fsw" class="text-cyan-400 font-mono">50kHz</b></span>
+                  <input type="range" id="rng-fsw" min="10" max="200" value="50" oninput="changeFsw(this.value)" class="w-full accent-cyan-400 bg-slate-900 h-1 rounded">
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- แผงแสดงผล Telemetry ข้อมูลสด -->
+      <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-xl flex-1 flex flex-col justify-between">
+        <div>
+          <h2 class="text-sm font-semibold text-slate-400 uppercase tracking-wider mb-3 flex items-center gap-2">
+            📊 ตัววัดประสิทธิผลและระบบนิรภัยฮาร์ดแวร์
+          </h2>
+
+          <div class="grid grid-cols-2 gap-3 mb-4">
+            <div class="bg-slate-950/60 p-2.5 rounded-xl border border-slate-850">
+              <span class="text-[10px] text-slate-500 block font-bold mb-0.5">แรงดันคลาดเคลื่อน (ΔV)</span>
+              <span id="tel-deltav" class="text-lg font-black text-amber-400 font-mono">0.0 mV</span>
+            </div>
+            <div class="bg-slate-950/60 p-2.5 rounded-xl border border-slate-850">
+              <span class="text-[10px] text-slate-500 block font-bold mb-0.5">กระแสชาร์จบาลานซ์สูงสุด</span>
+              <span id="tel-max-current" class="text-lg font-black text-cyan-400 font-mono">0.00 A</span>
+            </div>
+            <div class="bg-slate-950/60 p-2.5 rounded-xl border border-slate-850">
+              <span class="text-[10px] text-slate-500 block font-bold mb-0.5">ประสิทธิภาพการถ่ายโอน</span>
+              <span id="tel-efficiency" class="text-lg font-black text-emerald-400 font-mono">N/A</span>
+            </div>
+            <div class="bg-slate-950/60 p-2.5 rounded-xl border border-slate-850">
+              <span class="text-[10px] text-slate-500 block font-bold mb-0.5">พลังงานความร้อนสูญเสีย</span>
+              <span id="tel-loss-total" class="text-lg font-black text-slate-200 font-mono">0.0 J</span>
+            </div>
+          </div>
+
+          <div class="bg-slate-950/50 rounded-xl p-3 border border-slate-800 text-xs">
+            <div class="font-bold text-slate-300 mb-0.5 flex items-center gap-1.5">
+              <span id="status-dot" class="h-2 w-2 rounded-full bg-emerald-500"></span>
+              สถานะประมวลผลกลไกควบคุม:
+            </div>
+            <p id="tel-status" class="text-slate-400 font-medium leading-relaxed">ระบบจดจำสถานะสแตนด์บาย รอกระตุ้นประจุ...</p>
+          </div>
+        </div>
+
+        <div class="mt-4 pt-3 border-t border-slate-800/60 font-mono text-[11px]">
+          <span class="text-[9px] font-bold text-slate-500 uppercase block mb-0.5">สมการประเมินทางวิศวกรรมไฟฟ้า:</span>
+          <div id="equation-display" class="text-cyan-400 font-bold bg-slate-950/40 p-2 rounded border border-slate-900">
+            I_bleed = V_cell / R_bleed
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ส่วนจำลองลายวงจรและจุดวาดเวกเตอร์กระแสวิ่ง (8 COLS) -->
+    <section class="xl:col-span-8 flex flex-col gap-6">
+
+      <!-- แผงก้อนแบตเตอรี่และสไลเดอร์โต้ตอบ -->
+      <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-xl">
+        <div class="text-sm font-semibold text-slate-400 uppercase tracking-wider mb-4 flex justify-between items-center">
+          <span class="flex items-center gap-2">🔋 ชุดก้อนเซลล์ลิเธียมฟอสเฟต/ไอออน (4S Pack Matrix)</span>
+          <span id="tel-total-voltage" class="text-xs text-slate-400 font-bold font-mono bg-slate-950 px-2.5 py-1 rounded border border-slate-800">แรงดันแพ็ค: 15.40V</span>
+        </div>
+        <div id="cells-container" class="grid grid-cols-1 sm:grid-cols-4 gap-4">
+          <!-- โครงสร้างการ์ดเซลล์แบตเตอรี่จะถูกเรนเดอร์สดจาก JS -->
+        </div>
+      </div>
+
+      <!-- บอร์ดสกีแมติกและจำลองเวกเตอร์กระแสวิ่งจริง -->
+      <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-xl flex-1 min-h-[460px] flex flex-col justify-between">
+        <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 pb-3 border-b border-slate-800">
+          <div>
+            <h2 class="text-sm font-black text-slate-300 uppercase tracking-wider">⚡ แผนผังจำลองโครงข่ายเวกเตอร์แอมแปร์ไหลจริง</h2>
+            <p class="text-xs text-slate-500 font-medium">แสดงทิศทางกระแสด้วยหัวลูกศร (Arrow dynamic direction) ตามสภาวะทางเคมีจริง</p>
+          </div>
+          <div class="bg-slate-950 p-1 rounded-xl border border-slate-800 flex text-xs font-black">
+            <button id="tab-view-wiring" onclick="switchView('wiring')" class="px-3.5 py-1.5 rounded-lg transition-all bg-cyan-500 text-slate-950 shadow">🔌 แผนผังต่อสายแพฮาร์เนส</button>
+            <button id="tab-view-schematic" onclick="switchView('schematic')" class="px-3.5 py-1.5 rounded-lg transition-all text-slate-400 hover:text-white">📐 ลายวงจรอิเล็กรวมพิกัด</button>
+          </div>
+        </div>
+
+        <!-- กล่องวางเวกเตอร์ภาพกราฟิก SVG -->
+        <div class="my-5 bg-slate-950/70 rounded-2xl p-4 border border-slate-900 flex items-center justify-center flex-1 relative min-h-[300px]">
+          <div id="schematic-svg-container" class="w-full max-w-[760px]">
+            <!-- เรนเดอร์ไดนามิก -->
+          </div>
+        </div>
+
+        <!-- หน้าจอสโคปมอนิเตอร์ระดับ HD Retina Sharp -->
+        <div class="pt-4 border-t border-slate-800">
+          <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 mb-2">
+            <h3 class="text-xs font-semibold text-slate-400 flex flex-wrap items-center gap-2">
+              📊 กราฟวิเคราะห์พิกัดการลู่เข้าหากันของแรงดัน (Voltage Convergence Scope)
+              <span id="tel-average-v" class="text-[10px] text-slate-500 font-mono">แรงดันเฉลี่ยแพ็ค: ~3.82V</span>
+            </h3>
+            <button onclick="resetGraphOnly()" class="px-2.5 py-1 text-[10px] font-black bg-slate-800 hover:bg-slate-700 text-rose-400 rounded-xl transition">
+              🔄 รีเซ็ตกราฟ Scope
+            </button>
+          </div>
+          <div class="relative bg-slate-950 rounded-xl border border-slate-900 p-1.5">
+            <canvas id="scope-canvas" class="w-full h-[140px] rounded block"></canvas>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="border-t border-slate-900 bg-slate-950 py-5 px-6 text-center text-xs text-slate-500 font-mono flex flex-col sm:flex-row justify-between items-center gap-2">
+    <div>BMS Simulator Project Web Platform v5.8.0 (Integrated Production Suite)</div>
+    <div>โครงงานวิจัยพัฒนาโดย: นายจักรกฤษณ์ จ่าทองคำ | วิศวกรรมอิเล็กทรอนิกส์ และระบบควบคุมอัตโนมัติ</div>
+  </footer>
+
+  <script>
+    // สเตตัสและตัวแปรกลไกไฟฟ้าเคมีภายในระบบ
+    let isPlaying = false;
+    let isLoadActive = false;
+    let topology = 'passive';
+    let activeTab = 'wiring';
+    let simSpeed = 20;
+    let threshold = 15;
+    let isTripped = false;
+    let tripReason = "";
+
+    let rBleed = 4.7;
+    let cFly = 220;
+    let lInd = 47;
+    let fSw = 50;
+
+    let cells = [
+      { id: 1, v: 4.15, ah: 2.5, temp: 25 },
+      { id: 2, v: 3.85, ah: 2.5, temp: 25 },
+      { id: 3, v: 3.45, ah: 2.2, temp: 25 },
+      { id: 4, v: 4.02, ah: 2.5, temp: 25 }
+    ];
+
+    let totalLossJoules = 0;
+    let energyTransferred = 0;
+    let activePowerLoss = 0;
+    let activeChannels = [false, false, false, false];
+    let balanceCurrents = [0.0, 0.0, 0.0, 0.0];
+    let flowDirections = [1, 1, 1, 1]; // 1 = วิ่งเข้า BMS, -1 = วิ่งออกย้อนกลับเซลล์
+    let graphHistory = [];
+    let loopInterval = null;
+
+    const btnPlayPause = document.getElementById('btn-play-pause');
+    const txtPlay = document.getElementById('txt-play');
+    const telDeltaV = document.getElementById('tel-deltav');
+    const telMaxCurrent = document.getElementById('tel-max-current');
+    const telEfficiency = document.getElementById('tel-efficiency');
+    const telLossTotal = document.getElementById('tel-loss-total');
+    const telTotalVoltage = document.getElementById('tel-total-voltage');
+    const telAverageV = document.getElementById('tel-average-v');
+
+    const presets = {
+      imbalanced: [{v:4.15,ah:2.5,temp:25},{v:3.85,ah:2.5,temp:25},{v:3.45,ah:2.2,temp:25},{v:4.02,ah:2.5,temp:25}],
+      overcharge: [{v:4.32,ah:2.5,temp:25},{v:3.75,ah:2.5,temp:25},{v:3.70,ah:2.5,temp:25},{v:3.72,ah:2.5,temp:25}],
+      weak_cell:  [{v:4.10,ah:2.5,temp:25},{v:4.08,ah:2.5,temp:25},{v:3.12,ah:0.9,temp:25},{v:4.12,ah:2.5,temp:25}],
+      balanced:   [{v:3.80,ah:2.5,temp:25},{v:3.80,ah:2.5,temp:25},{v:3.80,ah:2.5,temp:25},{v:3.80,ah:2.5,temp:25}]
+    };
+
+    function initializeGraphHistory() {
+      graphHistory = [];
+      for (let i = 0; i < 200; i++) { graphHistory.push(cells.map(c => c.v)); }
+    }
+
+    function applyPreset(name) {
+      isTripped = false;
+      document.getElementById('sys-badge').innerText = "SYSTEM READY";
+      document.getElementById('sys-badge').className = "text-[10px] px-2 py-0.5 rounded bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 font-bold tracking-wider";
+      
+      pauseSim();
+      const selected = presets[name];
+      cells = selected.map((c, i) => ({ id: i+1, v: c.v, ah: c.ah, temp: c.temp }));
+      
+      totalLossJoules = 0; energyTransferred = 0; activePowerLoss = 0;
+      balanceCurrents = [0,0,0,0];
+      initializeGraphHistory();
+      renderCells();
+      updateTelemetry();
+      resizeCanvas();
+      updateSchematic();
+    }
+
+    function dismissWelcome() {
+      document.getElementById('welcome-modal').classList.add('opacity-0','pointer-events-none');
+      setTimeout(() => { applyPreset('imbalanced'); startSim(); }, 400);
+    }
+
+    function switchView(view) {
+      activeTab = view;
+      document.getElementById('tab-view-wiring').className = view === 'wiring' ? "px-3.5 py-1.5 rounded-lg transition-all bg-cyan-500 text-slate-950 shadow" : "px-3.5 py-1.5 rounded-lg transition-all text-slate-400 hover:text-white";
+      document.getElementById('tab-view-schematic').className = view === 'schematic' ? "px-3.5 py-1.5 rounded-lg transition-all bg-cyan-500 text-slate-950 shadow" : "px-3.5 py-1.5 rounded-lg transition-all text-slate-400 hover:text-white";
+      updateSchematic();
+    }
+
+    function checkSafetyLimits() {
+      cells.forEach(c => {
+        if (c.v >= 4.35) { triggerTrip("OVER VOLTAGE FAULT (OVP) เซลล์ก้อนที่ 0" + c.id + " สูงเกินพิกัดความปลอดภัย!"); }
+        if (c.v <= 2.90) { triggerTrip("UNDER VOLTAGE FAULT (UVP) เซลล์ก้อนที่ 0" + c.id + " แรงดันต่ำเกินขีดจำกัด!"); }
+        if (c.temp >= 80) { triggerTrip("OVER TEMPERATURE FAULT (OTP) อุณหภูมิวิกฤตเกินกำหนด!"); }
+      });
+    }
+
+    function triggerTrip(reason) {
+      isTripped = true;
+      tripReason = reason;
+      pauseSim();
+      document.getElementById('sys-badge').innerText = "TRIPPED FAULT";
+      document.getElementById('sys-badge').className = "text-[10px] px-2 py-0.5 rounded bg-rose-500/20 border border-rose-500/30 text-rose-400 font-bold tracking-wider animate-pulse";
+      document.getElementById('status-dot').className = "h-2 w-2 rounded-full bg-rose-500";
+      document.getElementById('tel-status').innerText = "🛑 BMS SAFETY TRIPPED: " + reason;
+    }
+
+    function renderCells() {
+      const container = document.getElementById('cells-container');
+      container.innerHTML = '';
+      cells.forEach((cell, idx) => {
+        let soc = Math.min(100, Math.max(0, Math.round(((cell.v - 3.0)/(4.2 - 3.0))*100)));
+        let color = "from-emerald-500 to-teal-500";
+        if (cell.v > 4.25) color = "from-rose-600 to-red-500 animate-pulse";
+        else if (cell.v < 3.3) color = "from-amber-600 to-red-500";
+
+        let label = '';
+        if (activeChannels[idx] && !isTripped) {
+          let balAmp = balanceCurrents[idx];
+          label = topology === 'passive' ? 
+            `<div class="absolute top-2 left-2 text-[8.5px] font-bold text-rose-400 bg-rose-500/20 border border-rose-500/40 px-1.5 py-0.5 rounded">🔥 BYPASS -${balAmp.toFixed(1)}A</div>` :
+            `<div class="absolute top-2 left-2 text-[8.5px] font-bold text-cyan-400 bg-cyan-500/20 border border-cyan-500/40 px-1.5 py-0.5 rounded">⚡ ACTIVE ${flowDirections[idx] > 0 ? 'OUT':'IN'} ${balAmp.toFixed(1)}A</div>`;
+        }
+
+        const card = document.createElement('div');
+        card.className = `bg-slate-950/80 p-3 rounded-xl border relative flex flex-col items-center ${activeChannels[idx] && !isTripped ? 'border-cyan-500/40 glow-cyan' : 'border-slate-800'}`;
+        card.innerHTML = `
+          ${label}
+          <span class="text-[10px] font-bold text-slate-500 mb-1 mt-4 font-mono">CELL 0${cell.id}</span>
+          <div class="w-20 h-28 border border-slate-700 rounded-lg p-0.5 relative flex flex-col justify-end items-center bg-slate-900/60 shadow-inner">
+            <div class="absolute -top-1 w-6 h-1 bg-slate-600 rounded-t"></div>
+            <div class="w-full rounded bg-gradient-to-t ${color} transition-all duration-300" style="height: ${soc}%;"></div>
+            <div class="absolute inset-0 flex flex-col justify-center items-center text-center font-mono select-none pointer-events-none">
+              <span class="text-base font-black text-white drop-shadow-[0_2px_3px_rgba(0,0,0,0.9)]">${cell.v.toFixed(2)}V</span>
+              <span class="text-[9px] font-bold text-slate-300 drop-shadow-[0_1px_2px_rgba(0,0,0,0.9)]">${soc}% SOC</span>
+            </div>
+          </div>
+          <div class="mt-2 text-[11px] font-mono ${cell.temp > 45 ? 'text-rose-400 font-bold animate-bounce':'text-slate-400'}">🌡️ ${cell.temp.toFixed(1)}°C</div>
+          <div class="w-full mt-3 space-y-1.5 pt-2 border-t border-slate-900 text-[10px]">
+            <div>
+              <div class="flex justify-between text-slate-500 font-semibold"><span>ปรับแรงดัน:</span><b class="text-cyan-400">${cell.v.toFixed(2)}V</b></div>
+              <input type="range" min="2.85" max="4.38" step="0.01" value="${cell.v}" oninput="manualVolt(${idx}, this.value)" class="w-full accent-cyan-400 bg-slate-900 h-1 rounded">
+            </div>
+          </div>
+        `;
+        container.appendChild(card);
+      });
+    }
+
+    function manualVolt(idx, val) {
+      cells[idx].v = parseFloat(val);
+      checkSafetyLimits();
+      if (!isPlaying) initializeGraphHistory();
+      renderCells(); updateTelemetry(); drawScope(); updateSchematic();
+    }
+
+    function changeSimSpeed(v) { simSpeed = parseInt(v); document.getElementById('lbl-sim-speed').innerText = v + 'x'; }
+    function changeThreshold(v) { threshold = parseInt(v); document.getElementById('lbl-threshold').innerText = '≤ ' + v + ' mV'; updateTelemetry(); }
+    function changeRbleed(v) { rBleed = parseFloat(v); document.getElementById('lbl-rbleed').innerText = v + ' Ω'; }
+    function changeCfly(v) { cFly = parseInt(v); document.getElementById('lbl-cfly').innerText = v + 'uF'; }
+    function changeFsw(v) { fSw = parseInt(v); document.getElementById('lbl-fsw').innerText = v + 'kHz'; }
+    function resetGraphOnly() { initializeGraphHistory(); drawScope(); }
+
+    function toggleLoad() {
+      if (isTripped) return;
+      isLoadActive = !isLoadActive;
+      document.getElementById('btn-load').innerText = isLoadActive ? "⚡ กำลังจ่ายโหลดใช้งาน" : "🛑 ปิดโหลดใช้งาน";
+      document.getElementById('btn-load').className = isLoadActive ? "py-3 px-4 rounded-xl font-bold text-xs bg-emerald-600 hover:bg-emerald-500 text-white flex items-center justify-center gap-1.5 transition glow-emerald" : "py-3 px-4 rounded-xl font-bold text-xs bg-slate-800 hover:bg-slate-700 text-white flex items-center justify-center gap-1.5 transition";
+      updateSchematic();
+    }
+
+    function setTopology(top) {
+      topology = top;
+      ['passive', 'capacitor', 'inductive', 'transformer'].forEach(t => {
+        document.getElementById('btn-tab-' + t).className = t === top ? 
+          "p-2.5 rounded-xl border text-left flex flex-col justify-between transition-all bg-emerald-500/15 border-emerald-500 text-emerald-300" : 
+          "p-2.5 rounded-xl border text-left flex flex-col justify-between transition-all bg-slate-950 border-slate-800 text-slate-400 hover:border-slate-700";
+      });
+      document.getElementById('tuning-passive').className = top === 'passive' ? 'space-y-2' : 'hidden';
+      document.getElementById('tuning-active').className = top === 'passive' ? 'hidden' : 'space-y-3';
+      
+      const eq = { passive: "P_loss = V² / R_bleed", capacitor: "I_shuttle = C * f * ΔV", inductive: "I_avg ≈ (V * D²) / (2 * L * f)", transformer: "P_core = Core_loss + I²R" };
+      document.getElementById('equation-display').innerText = eq[top];
+      resetStats();
+    }
+
+    function toggleSimulation() { if (isTripped) return; isPlaying ? pauseSim() : startSim(); }
+    
+    function startSim() {
+      isPlaying = true;
+      btnPlayPause.className = "flex-1 py-3 px-4 rounded-xl font-bold text-xs bg-amber-500 hover:bg-amber-400 text-slate-950 flex items-center justify-center transition shadow-lg";
+      txtPlay.innerText = "หยุดวิเคราะห์ชั่วคราว";
+      loopInterval = setInterval(simulationLoop, 100);
+    }
+
+    function pauseSim() {
+      isPlaying = false;
+      btnPlayPause.className = "flex-1 py-3 px-4 rounded-xl font-bold text-xs bg-emerald-500 hover:bg-emerald-400 text-slate-950 flex items-center justify-center transition shadow-lg";
+      txtPlay.innerText = "เริ่มระบบวิเคราะห์";
+      clearInterval(loopInterval);
+      if (!isTripped) {
+        activeChannels = [false, false, false, false];
+        balanceCurrents = [0,0,0,0];
+      }
+      renderCells(); updateTelemetry(); drawScope(); updateSchematic();
+    }
+
+    function resetStats() {
+      totalLossJoules = 0; energyTransferred = 0; activePowerLoss = 0;
+      cells.forEach(c => c.temp = 25);
+      balanceCurrents = [0,0,0,0];
+      initializeGraphHistory();
+      pauseSim();
+    }
+
+    function simulationLoop() {
+      if (isTripped) return;
+      checkSafetyLimits();
+
+      const volts = cells.map(c => c.v);
+      const maxV = Math.max(...volts);
+      const minV = Math.min(...volts);
+      const delta = maxV - minV;
+      const targetLimit = threshold / 1000;
+
+      const dt = 0.1 * (simSpeed / 20);
+      const dtHours = dt / 3600;
+
+      // ระบบจำลองกระแสโหลดภายนอก
+      if (isLoadActive) {
+        cells.forEach(c => {
+          c.v -= (0.4 * dtHours / c.ah);
+          c.temp = Math.min(75, c.temp + (0.05 * dt));
+        });
+      }
+
+      if (delta <= targetLimit) {
+        activeChannels = [false, false, false, false];
+        balanceCurrents = [0,0,0,0];
+        if (!isLoadActive) {
+          pauseSim();
+          document.getElementById('tel-status').innerText = "✓ เซลล์ทุกก้อนลู่เข้าค่าแรงดันบาลานซ์ที่สมดุลปลอดภัยอย่างสมบูรณ์แล้ว";
+          return;
+        }
+      }
+
+      let nextActive = [false, false, false, false];
+      let tempCurrents = [0,0,0,0];
+      let currentPowerLoss = 0;
+
+      if (topology === 'passive') {
+        cells.forEach((c, idx) => {
+          if (c.v > minV + targetLimit) {
+            nextActive[idx] = true;
+            flowDirections[idx] = 1; 
+            const iBleed = c.v / rBleed;
+            tempCurrents[idx] = iBleed;
+            const pLoss = iBleed * iBleed * rBleed;
+            currentPowerLoss += pLoss;
+            c.v = Math.max(2.8, c.v - (iBleed * dtHours / c.ah) * 1.4);
+            c.temp = Math.min(85, c.temp + (pLoss * dt * 0.18) - ((c.temp-25)*0.06*dt));
+          } else {
+            c.temp = Math.max(25, c.temp - (c.temp-25)*0.08*dt);
+          }
+        });
+        document.getElementById('tel-status').innerText = "โหมด Passive: เปิดมอสเฟตบายพาสเพื่อเบี่ยงเบนกระแสจากเซลล์พิกัดสูงแปลงคายทิ้งเป็นความร้อน";
+
+      } else if (topology === 'capacitor') {
+        const scale = (cFly * 1e-6) * (fSw * 1e3);
+        let shunts = [0,0,0,0];
+        
+        for (let i = 0; i < 3; i++) {
+          const diff = cells[i].v - cells[i+1].v;
+          const iShuttle = diff * scale;
+          if (Math.abs(diff) > targetLimit) {
+            shunts[i] -= iShuttle; shunts[i+1] += iShuttle;
+            nextActive[i] = true; nextActive[i+1] = true;
+            tempCurrents[i] = Math.max(tempCurrents[i], Math.abs(iShuttle));
+            tempCurrents[i+1] = Math.max(tempCurrents[i+1], Math.abs(iShuttle));
+            
+            flowDirections[i] = iShuttle > 0 ? 1 : -1;
+            flowDirections[i+1] = iShuttle > 0 ? -1 : 1;
+
+            currentPowerLoss += iShuttle * iShuttle * 0.4;
+            energyTransferred += Math.abs(iShuttle * diff) * dt;
+          }
+        }
+        cells.forEach((c, i) => {
+          c.v = Math.min(4.35, Math.max(2.8, c.v + (shunts[i] * dtHours / c.ah)));
+          c.temp = Math.min(50, Math.max(25, c.temp + (Math.abs(shunts[i])*0.1*dt) - ((c.temp-25)*0.08*dt)));
+        });
+        document.getElementById('tel-status').innerText = "โหมด Switched-Capacitor: ปั๊มย้ายพลังงานกระสวยไฟฟ้าข้ามก้อนด้วยความถี่สูง ค่าสูญเสียต่ำ";
+
+      } else if (topology === 'inductive') {
+        let shunts = [0,0,0,0];
+        for (let i = 0; i < 3; i++) {
+          const diff = cells[i].v - cells[i+1].v;
+          if (Math.abs(diff) > targetLimit) {
+            const src = diff > 0 ? i : i+1;
+            const dst = diff > 0 ? i+1 : i;
+            const iPeak = cells[src].v / ((lInd * 1e-6) * (fSw * 1e3));
+            const iAvg = Math.min(2.8, iPeak * 0.25 * Math.abs(diff));
+            
+            shunts[src] -= iAvg; shunts[dst] += iAvg * 0.90;
+            nextActive[src] = true; nextActive[dst] = true;
+            tempCurrents[src] = iAvg; tempCurrents[dst] = iAvg * 0.90;
+            
+            flowDirections[src] = 1; flowDirections[dst] = -1; 
+            currentPowerLoss += iAvg * iAvg * 0.15;
+            energyTransferred += Math.abs(iAvg * diff) * dt;
+          }
+        }
+        cells.forEach((c, i) => {
+          c.v = Math.min(4.35, Math.max(2.8, c.v + (shunts[i] * dtHours / c.ah)));
+          c.temp = Math.min(58, Math.max(25, c.temp + (Math.abs(shunts[i])*0.15*dt) - ((c.temp-25)*0.07*dt)));
+        });
+        document.getElementById('tel-status').innerText = "โหมด Active Inductive: บังคับเปิดปิดสวิตชิ่งกักเก็บพลังงานไว้ในสนามแม่เหล็กแกนคอยล์แล้วเหนี่ยวนำอัดเข้าก้อนต่ำ";
+
+      } else {
+        let maxIdx = volts.indexOf(maxV);
+        let minIdx = volts.indexOf(minV);
+        nextActive[maxIdx] = true; nextActive[minIdx] = true;
+        
+        const iTx = 2.2;
+        cells[maxIdx].v = Math.max(2.8, cells[maxIdx].v - (iTx * dtHours / cells[maxIdx].ah));
+        cells[minIdx].v = Math.min(4.35, cells[minIdx].v + ((iTx * 0.93) * dtHours / cells[minIdx].ah));
+        
+        tempCurrents[maxIdx] = iTx; tempCurrents[minIdx] = iTx * 0.93;
+        flowDirections[maxIdx] = 1; flowDirections[minIdx] = -1; 
+        
+        currentPowerLoss = 0.7 + (iTx * iTx * 0.08);
+        energyTransferred += (iTx * delta) * dt;
+        cells.forEach((c, i) => {
+          let h = (i===maxIdx || i===minIdx) ? 0.3 : 0;
+          c.temp = Math.min(55, Math.max(25, c.temp + (h*dt) - ((c.temp-25)*0.08*dt)));
+        });
+        document.getElementById('tel-status').innerText = "โหมด Flyback Core: ใช้ขดลวด Multi-Winding ดึงกระแสจากเซลล์สูงสุดแปลงกระจายลงสู่ก้อนต่ำผ่านแกนกลางร่วม";
+      }
+
+      totalLossJoules += (currentPowerLoss * dt);
+      activePowerLoss = currentPowerLoss;
+      activeChannels = nextActive;
+      balanceCurrents = tempCurrents;
+      
+      graphHistory.push(cells.map(c => c.v));
+      if (graphHistory.length > 200) graphHistory.shift();
+
+      if (!isTripped) {
+        document.getElementById('status-dot').className = "h-2 w-2 rounded-full bg-emerald-500 animate-pulse";
+      }
+
+      renderCells(); updateTelemetry(); drawScope(); updateSchematic();
+    }
+
+    function updateTelemetry() {
+      const volts = cells.map(c => c.v);
+      const maxV = Math.max(...volts);
+      const minV = Math.min(...volts);
+      const diffMV = (maxV - minV) * 1000;
+      const packV = volts.reduce((a,b)=> a+b, 0);
+
+      telDeltaV.innerText = diffMV.toFixed(1) + ' mV';
+      telMaxCurrent.innerText = Math.max(...balanceCurrents).toFixed(2) + ' A';
+      telTotalVoltage.innerText = 'แรงดันแพ็ค: ' + packV.toFixed(2) + 'V';
+      telAverageV.innerText = 'แรงดันเฉลี่ยแพ็ค: ~' + (packV/4).toFixed(3) + ' V';
+      telLossTotal.innerText = totalLossJoules.toFixed(1) + ' J';
+
+      if (topology === 'passive') {
+        telEfficiency.innerText = '0% (Lossy)'; telEfficiency.className = 'text-lg font-black text-rose-500 font-mono';
+      } else {
+        let inE = energyTransferred + totalLossJoules;
+        let pct = inE === 0 ? 0 : Math.min(96.5, (energyTransferred / inE)*100);
+        telEfficiency.innerText = pct === 0 ? 'N/A' : pct.toFixed(1) + '%';
+        telEfficiency.className = 'text-lg font-black text-emerald-400 font-mono';
+      }
+
+      telDeltaV.className = diffMV <= threshold ? 'text-lg font-black text-emerald-400 font-mono' : (diffMV > 150 ? 'text-lg font-black text-rose-500 animate-pulse font-mono' : 'text-lg font-black text-amber-400 font-mono');
+    }
+
+    function updateSchematic() {
+      const container = document.getElementById('schematic-svg-container');
+      
+      const markers = `
+        <defs>
+          ${['cyan','#22d3ee', 'amber','#fbbf24', 'purple','#c084fc', 'red','#f43f5e', 'load','#10b981'].map((v, i, a) => i%2===0 ? `
+          <marker id="arrow-${a[i]}" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+            <path d="M 0 1.5 L 9 5 L 0 8.5 z" fill="${a[i+1]}" />
+          </marker>` : '').join('')}
+        </defs>
+      `;
+
+      if (activeTab === 'wiring') {
+        const wClr = [0,1,2,3,4].map(i => {
+          if (i === 0) return activeChannels[0] && flowDirections[0] > 0 ? 'animate-flow-red-rev' : (activeChannels[0]? 'animate-flow-red':'stroke-[#334155]');
+          if (i === 4) return activeChannels[3] && flowDirections[3] < 0 ? 'animate-flow-red-rev' : (activeChannels[3]? 'animate-flow-red':'stroke-[#334155]');
+          return activeChannels[i-1] || activeChannels[i] ? (i===1?'animate-flow-cyan':(i===2?'animate-flow-amber':'animate-flow-purple')) : 'stroke-[#334155]';
+        });
+
+        const wMarker = [0,1,2,3,4].map(i => {
+          if (isTripped) return 'none';
+          if (i === 0 && activeChannels[0]) return flowDirections[0] > 0 ? 'none' : 'url(#arrow-red)';
+          if (i === 1 && (activeChannels[0]||activeChannels[1])) return 'url(#arrow-cyan)';
+          if (i === 2 && (activeChannels[1]||activeChannels[2])) return 'url(#arrow-amber)';
+          if (i === 3 && (activeChannels[2]||activeChannels[3])) return 'url(#arrow-purple)';
+          if (i === 4 && activeChannels[3]) return flowDirections[3] < 0 ? 'none' : 'url(#arrow-red)';
+          return 'none';
+        });
+
+        const pin0Amps = activeChannels[0] ? balanceCurrents[0] : 0.0;
+        const pin1Amps = activeChannels[1] ? balanceCurrents[1] : 0.0;
+        const pin2Amps = activeChannels[2] ? balanceCurrents[2] : 0.0;
+        const pin3Amps = activeChannels[3] ? balanceCurrents[3] : 0.0;
+        const pin4Amps = activeChannels[3] ? balanceCurrents[3] * 0.95 : 0.0;
+
+        container.innerHTML = `
+          <svg viewBox="0 0 800 320" class="w-full font-mono select-none">
+            ${markers}
+            <rect x="10" y="10" width="780" height="300" fill="#090d16" stroke="#1e293b" stroke-width="1.5" rx="16" />
+            
+            ${isLoadActive ? `
+            <path d="M 740 115 L 740 230" fill="none" class="animate-flow-load" marker-end="url(#arrow-load)" />
+            <rect x="700" y="150" width="80" height="20" fill="#10b981/20" stroke="#10b981" rx="4"/>
+            <text x="740" y="163" fill="#10b981" font-size="8" font-weight="black" text-anchor="middle">LOAD ACTIVE</text>
+            `:''}
+
+            <g transform="translate(160, 20)">
+              <rect x="0" y="0" width="480" height="110" fill="#064e3b" stroke="#059669" stroke-width="2" rx="12" />
+              <text x="240" y="26" fill="#a7f3d0" font-size="11" font-weight="black" text-anchor="middle" letter-spacing="1">BMS BALANCING BOARD CONTROL (4S)</text>
+              <text x="240" y="40" fill="#34d399" font-size="8.5" font-weight="bold" text-anchor="middle">ผู้พัฒนา: นายจักรกฤษณ์ จ่าทองคำ (วิศวกรรมอิเล็กทรอนิกส์)</text>
+              <rect x="100" y="75" width="280" height="25" fill="#f8fafc" stroke="#94a3b8" rx="4" />
+              ${[0,1,2,3,4].map(i => `<rect x="${120+(i*60)-4}" y="80" width="8" height="15" fill="#cbd5e1" rx="1"/>`).join('')}
+              <text x="120" y="68" fill="#38bdf8" font-size="9" font-weight="black" text-anchor="middle">B-</text>
+              <text x="180" y="68" fill="#38bdf8" font-size="9" font-weight="black" text-anchor="middle">B1</text>
+              <text x="240" y="68" fill="#38bdf8" font-size="9" font-weight="black" text-anchor="middle">B2</text>
+              <text x="300" y="68" fill="#38bdf8" font-size="9" font-weight="black" text-anchor="middle">B3</text>
+              <text x="360" y="68" fill="#38bdf8" font-size="9" font-weight="black" text-anchor="middle">B+</text>
+            </g>
+            
+            <g transform="translate(100, 190)">
+              ${[0,1,2,3].map(i => `
+                <g transform="translate(${i*150}, 20)">
+                  <rect x="0" y="0" width="110" height="55" fill="#1e293b" stroke="#475569" stroke-width="2" rx="6" />
+                  <rect x="110" y="15" width="6" height="25" fill="#94a3b8" rx="2" />
+                  <text x="55" y="32" fill="#fff" font-size="11" font-weight="black" text-anchor="middle">C${i+1}: ${cells[i].v.toFixed(2)}V</text>
+                </g>
+              `).join('')}
+              <rect x="110" y="42" width="46" height="10" fill="#b45309" stroke="#78350f" rx="2"/>
+              <rect x="260" y="42" width="46" height="10" fill="#b45309" stroke="#78350f" rx="2"/>
+              <rect x="410" y="42" width="46" height="10" fill="#b45309" stroke="#78350f" rx="2"/>
+            </g>
+            
+            <path d="M 100 237 C 100 170, 280 170, 280 115" fill="none" class="${wClr[0]}" marker-end="${wMarker[0]}" />
+            <path d="M 233 237 C 233 180, 340 180, 340 115" fill="none" class="${wClr[1]}" marker-end="${wMarker[1]}" />
+            <path d="M 383 237 C 383 180, 400 180, 400 115" fill="none" class="${wClr[2]}" marker-end="${wMarker[2]}" />
+            <path d="M 533 237 C 533 180, 460 180, 460 115" fill="none" class="${wClr[3]}" marker-end="${wMarker[3]}" />
+            <path d="M 616 237 C 616 170, 520 170, 520 115" fill="none" class="${wClr[4]}" marker-end="${wMarker[4]}" />
+
+            ${pin0Amps > 0 ? `<g transform="translate(142, 142)"><rect x="-24" y="-8" width="48" height="16" fill="#f43f5e" rx="4" /><text x="0" y="4" fill="#fff" font-size="8.5" font-weight="black" text-anchor="middle">${pin0Amps.toFixed(2)}A</text></g>` : ''}
+            ${pin1Amps > 0 ? `<g transform="translate(265, 148)"><rect x="-24" y="-8" width="48" height="16" fill="#06b6d4" rx="4" /><text x="0" y="4" fill="#fff" font-size="8.5" font-weight="black" text-anchor="middle">${pin1Amps.toFixed(2)}A</text></g>` : ''}
+            ${pin2Amps > 0 ? `<g transform="translate(390, 160)"><rect x="-24" y="-8" width="48" height="16" fill="#eab308" rx="4" /><text x="0" y="4" fill="#fff" font-size="8.5" font-weight="black" text-anchor="middle">${pin2Amps.toFixed(2)}A</text></g>` : ''}
+            ${pin3Amps > 0 ? `<g transform="translate(505, 148)"><rect x="-24" y="-8" width="48" height="16" fill="#a855f7" rx="4" /><text x="0" y="4" fill="#fff" font-size="8.5" font-weight="black" text-anchor="middle">${pin3Amps.toFixed(2)}A</text></g>` : ''}
+            ${pin4Amps > 0 ? `<g transform="translate(578, 142)"><rect x="-24" y="-8" width="48" height="16" fill="#ef4444" rx="4" /><text x="0" y="4" fill="#fff" font-size="8.5" font-weight="black" text-anchor="middle">${pin4Amps.toFixed(2)}A</text></g>` : ''}
+          </svg>
+        `;
+      } else {
+        if (topology === 'passive') {
+          container.innerHTML = `
+            <svg viewBox="0 0 700 240" class="w-full font-mono select-none">
+              ${markers}
+              <line x1="50" y1="20" x2="50" y2="220" stroke="#475569" stroke-width="2.5" />
+              ${[0,1,2,3].map(i => {
+                const y = 40 + (i*50); const act = activeChannels[i] && !isTripped;
+                return `
+                  <line x1="160" y1="${y-12}" x2="160" y2="${y+12}" stroke="#06b6d4" stroke-width="3" />
+                  <line x1="170" y1="${y-6}" x2="170" y2="${y+6}" stroke="#1e40af" stroke-width="5" />
+                  <line x1="50" y1="${y}" x2="160" y2="${y}" stroke="#475569" stroke-width="1.5" />
+                  <line x1="170" y1="${y}" x2="250" y2="${y}" stroke="#475569" stroke-width="1.5" />
+                  <path d="M 100 ${y} L 100 ${y-20} L 150 ${y-20}" fill="none" stroke="${act?'#f43f5e':'#475569'}" stroke-width="2" marker-end="${act?'url(#arrow-red)':'none'}" />
+                  <rect x="150" y="${y-26}" width="40" height="12" fill="#020617" stroke="${act?'#f43f5e':'#475569'}" stroke-width="1.5"/>
+                  <text x="170" y="${y-17}" fill="${act?'#f43f5e':'#55637a'}" font-size="8" text-anchor="middle" font-weight="bold">R_bleed</text>
+                  <path d="M 190 ${y-20} L 230 ${y-20} L 230 ${y}" fill="none" stroke="${act?'#f43f5e':'#475569'}" stroke-width="2" />
+                `;
+              }).join('')}
+            </svg>
+          `;
+        } else {
+          container.innerHTML = `
+            <svg viewBox="0 0 700 240" class="w-full font-mono select-none">
+              ${markers}
+              <line x1="60" y1="40" x2="640" y2="40" stroke="#475569" stroke-width="2" />
+              <line x1="60" y1="200" x2="640" y2="200" stroke="#475569" stroke-width="2" />
+              ${[0,1,2,3].map(i => `<g transform="translate(${110+(i*140)}, 100)"><rect x="-20" y="-15" width="40" height="30" fill="#020617" stroke="#475569" rx="4"/><text x="0" y="4" fill="#94a3b8" font-size="10" font-weight="bold" text-anchor="middle">C${i+1}</text></g>`).join('')}
+              ${[0,1,2].map(i => {
+                const x = 180 + (i*140); const act = (activeChannels[i] || activeChannels[i+1]) && !isTripped;
+                const arr = topology==='capacitor'?'url(#arrow-cyan)':'url(#arrow-amber)';
+                return `
+                  <path d="M ${x-20} 40 L ${x} 80 L ${x} 140 L ${x+20} 200" fill="none" stroke="${act?'#22d3ee':'#475569'}" stroke-width="2" marker-end="${act?arr:'none'}" />
+                  <circle cx="${x}" cy="110" r="12" fill="#090d16" stroke="${act?'#22d3ee':'#475569'}" stroke-width="2"/>
+                  <text x="${x}" y="114" fill="${act?'#22d3ee':'#475569'}" font-size="9" font-weight="black" text-anchor="middle">${topology==='capacitor'?'C':'L'}</text>
+                `;
+              }).join('')}
+            </svg>
+          `;
+        }
+      }
+    }
+
+    function resizeCanvas() {
+      const canvas = document.getElementById('scope-canvas'); if (!canvas) return;
+      const dpr = window.devicePixelRatio || 1;
+      canvas.width = canvas.clientWidth * dpr; canvas.height = canvas.clientHeight * dpr;
+      drawScope();
+    }
+
+    function drawScope() {
+      const canvas = document.getElementById('scope-canvas'); if (!canvas) return;
+      const ctx = canvas.getContext('2d'); const dpr = window.devicePixelRatio || 1;
+      const w = canvas.width; const h = canvas.height;
+      
+      ctx.clearRect(0,0,w,h);
+      ctx.strokeStyle = '#1e293b'; ctx.lineWidth = 1*dpr;
+      
+      for(let i=1; i<15; i++) { ctx.beginPath(); ctx.moveTo((i/15)*w, 0); ctx.lineTo((i/15)*w, h); ctx.stroke(); }
+      for(let i=1; i<5; i++) { ctx.beginPath(); ctx.moveTo(0, (i/5)*h); ctx.lineTo(w, (i/5)*h); ctx.stroke(); }
+
+      if(graphHistory.length === 0) return;
+      const colors = ['#f43f5e', '#38bdf8', '#fbbf24', '#a855f7'];
+
+      for(let cIdx=0; cIdx<4; cIdx++) {
+        ctx.strokeStyle = colors[cIdx]; ctx.lineWidth = 2.5*dpr; ctx.beginPath();
+        let first = true;
+        for(let ptIdx=0; ptIdx<graphHistory.length; ptIdx++) {
+          const x = (ptIdx/(graphHistory.length-1))*w;
+          const v = graphHistory[ptIdx][cIdx];
+          const normY = Math.min(1, Math.max(0, (v - 2.8)/(4.4 - 2.8)));
+          const y = h - (normY * (h - 20*dpr) + 10*dpr);
+          if (first) { ctx.moveTo(x,y); first=false; } else { ctx.lineTo(x,y); }
+        }
+        ctx.stroke();
+      }
+      ctx.fillStyle = '#64748b'; ctx.font = `bold ${8.5*dpr}px monospace`;
+      ctx.fillText('4.4V', 8*dpr, 14*dpr); ctx.fillText('2.8V', 8*dpr, h-6*dpr);
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+      applyPreset('imbalanced');
+      window.addEventListener('resize', resizeCanvas);
+    });
+  </script>
+</body>
+</html>
